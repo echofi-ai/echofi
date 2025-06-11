@@ -30,5 +30,5 @@ cd echofi
 go install ./...
 ```
 
-# Learn more about echofi
+# Learn more about Echofi
 
