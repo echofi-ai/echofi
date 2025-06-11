@@ -30,5 +30,18 @@ cd echofi
 go install ./...
 ```
 
+# Start node local
+
+One node:
+
+```bash
+script/run-node.sh
+```
+
+Multi node:
+```bash
+script/multi-local-node.sh
+```
+
 # Learn more about Echofi
 
