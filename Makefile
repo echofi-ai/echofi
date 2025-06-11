@@ -1,5 +1,6 @@
 VERSION := $(shell git describe --abbrev=6 --dirty --always --tags)
 COMMIT := $(shell git log -1 --format='%H')
+BUILDDIR ?= $(CURDIR)/build
 
 build_tags = netgo
 ifeq ($(LEDGER_ENABLED),true)
@@ -48,5 +49,7 @@ ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
 BUILD_FLAGS := -ldflags '$(ldflags)' -gcflags="all=-N -l"
 
-build: go.sum
-		go build $(BUILD_FLAGS) ./cmd/echofid
+BUILD_ARGS=-o $(BUILDDIR)/
+
+build: go.sum 
+		go build $(BUILD_FLAGS) $(BUILD_ARGS) ./cmd/echofid
