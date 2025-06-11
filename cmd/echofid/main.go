@@ -8,7 +8,7 @@ import (
 	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
 
 	"github.com/echofi-ai/echofi/app"
-	"github.com/echofi-ai/echofi/cmd/echofi/cmd"
+	"github.com/echofi-ai/echofi/cmd/echofid/cmd"
 )
 
 func main() {
