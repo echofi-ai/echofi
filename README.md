@@ -30,7 +30,7 @@ cd echofi
 go install ./...
 ```
 
-# Start node local
+# Start local node
 
 One node:
 
