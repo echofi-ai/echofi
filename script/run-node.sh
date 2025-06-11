@@ -12,16 +12,27 @@ echofid init echofi-1 --chain-id testing-2
 echo "$mnm_val"| echofid keys add val --recover --keyring-backend test 
 
 # Allocate genesis accounts (cosmos formatted addresses)
-echofid genesis add-genesis-account val 100000000000000000000000000stake,1000000000000000000uecho --keyring-backend test
+echofid genesis add-genesis-account val 100000000000000000000000000stake,10000000000000000000000uecho --keyring-backend test
 
 # Sign genesis transaction
-echofid genesis gentx val 1000000000000000000000stake --keyring-backend test --chain-id testing-2
+echofid genesis gentx val 1000000000000000000000uecho --keyring-backend test --chain-id testing-2
 
 # Collect genesis tx
 echofid genesis collect-gentxs
 
 # Run this to ensure everything worked and that the genesis file is setup correctly
 echofid genesis validate-genesis
+
+update_test_genesis () {
+    # EX: update_test_genesis '.consensus_params["block"]["max_gas"]="100000000"'
+    cat $HOME/.echofi/config/genesis.json | jq "$1" > tmp.json && mv tmp.json $HOME/.echofi/config/genesis.json
+}
+
+# update_test_genesis '.app_state["gov"]["voting_params"]["voting_period"] = "30s"'
+update_test_genesis '.app_state["mint"]["params"]["mint_denom"]= "uecho"'
+update_test_genesis '.app_state["gov"]["params"]["min_deposit"]=[{"denom": "uecho","amount": "1000000"}]'
+update_test_genesis '.app_state["crisis"]["constant_fee"]={"denom": "uecho","amount": "1000"}'
+update_test_genesis '.app_state["staking"]["params"]["bond_denom"]="uecho"'
 
 # # validator2
 # VALIDATOR2_CONFIG=$HOME/.echofi/config/config.toml
@@ -39,4 +50,4 @@ echofid genesis validate-genesis
 # sed -i -E 's|tcp://0.0.0.0:10337|tcp://0.0.0.0:10347|g' $VALIDATOR2_APP_TOML
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)
-echofid start --pruning=nothing  --minimum-gas-prices=0.0001stake
+echofid start --pruning=nothing  --minimum-gas-prices=0.0001uecho

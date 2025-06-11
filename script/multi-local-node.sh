@@ -35,9 +35,9 @@ echofid genesis add-genesis-account $(echofid keys show validator3 -a --keyring-
 echofid genesis add-genesis-account $(echofid keys show validator1 -a --keyring-backend=test --home=$HOME/.echofid/validator1) 10000000000000000000000000000000stake,10000000000000000000000000000000uecho --home=$HOME/.echofid/validator3 
 echofid genesis add-genesis-account $(echofid keys show validator2 -a --keyring-backend=test --home=$HOME/.echofid/validator2) 10000000000000000000000000000000stake,10000000000000000000000000000000uecho --home=$HOME/.echofid/validator3 
 echofid genesis add-genesis-account $(echofid keys show validator3 -a --keyring-backend=test --home=$HOME/.echofid/validator3) 10000000000000000000000000000000stake,10000000000000000000000000000000uecho --home=$HOME/.echofid/validator3
-echofid genesis gentx validator1 1000000000000000000000stake --keyring-backend=test --home=$HOME/.echofid/validator1 --chain-id=testing-1
-echofid genesis gentx validator2 1000000000000000000000stake --keyring-backend=test --home=$HOME/.echofid/validator2 --chain-id=testing-1
-echofid genesis gentx validator3 1000000000000000000000stake --keyring-backend=test --home=$HOME/.echofid/validator3 --chain-id=testing-1
+echofid genesis gentx validator1 1000000000000000000000uecho --keyring-backend=test --home=$HOME/.echofid/validator1 --chain-id=testing-1
+echofid genesis gentx validator2 1000000000000000000000uecho --keyring-backend=test --home=$HOME/.echofid/validator2 --chain-id=testing-1
+echofid genesis gentx validator3 1000000000000000000000uecho --keyring-backend=test --home=$HOME/.echofid/validator3 --chain-id=testing-1
 
 cp validator2/config/gentx/*.json $HOME/.echofid/validator1/config/gentx/
 cp validator3/config/gentx/*.json $HOME/.echofid/validator1/config/gentx/
@@ -56,7 +56,7 @@ VALIDATOR3_APP_TOML=$HOME/.echofid/validator3/config/app.toml
 
 # validator1
 sed -i -E 's|localhost:9090|localhost:9050|g' $VALIDATOR1_APP_TOML
-sed -i -E 's|minimum-gas-prices = ""|minimum-gas-prices = "0.0001stake"|g' $VALIDATOR1_APP_TOML
+sed -i -E 's|minimum-gas-prices = ""|minimum-gas-prices = "0.0001uecho"|g' $VALIDATOR1_APP_TOML
 
 # validator2
 sed -i -E 's|tcp://localhost:1317|tcp://localhost:1316|g' $VALIDATOR2_APP_TOML
@@ -64,7 +64,7 @@ sed -i -E 's|tcp://localhost:1317|tcp://localhost:1316|g' $VALIDATOR2_APP_TOML
 sed -i -E 's|localhost:9090|localhost:9088|g' $VALIDATOR2_APP_TOML
 # sed -i -E 's|0.0.0.0:9091|0.0.0.0:9089|g' $VALIDATOR2_APP_TOML
 sed -i -E 's|localhost:9091|localhost:9089|g' $VALIDATOR2_APP_TOML
-sed -i -E 's|minimum-gas-prices = ""|minimum-gas-prices = "0.0001stake"|g' $VALIDATOR2_APP_TOML
+sed -i -E 's|minimum-gas-prices = ""|minimum-gas-prices = "0.0001uecho"|g' $VALIDATOR2_APP_TOML
 
 # validator3
 sed -i -E 's|tcp://localhost:1317|tcp://localhost:1315|g' $VALIDATOR3_APP_TOML
@@ -72,7 +72,7 @@ sed -i -E 's|tcp://localhost:1317|tcp://localhost:1315|g' $VALIDATOR3_APP_TOML
 sed -i -E 's|localhost:9090|localhost:9086|g' $VALIDATOR3_APP_TOML
 # sed -i -E 's|0.0.0.0:9091|0.0.0.0:9087|g' $VALIDATOR3_APP_TOML
 sed -i -E 's|localhost:9091|localhost:9087|g' $VALIDATOR3_APP_TOML
-sed -i -E 's|minimum-gas-prices = ""|minimum-gas-prices = "0.0001stake"|g' $VALIDATOR3_APP_TOML
+sed -i -E 's|minimum-gas-prices = ""|minimum-gas-prices = "0.0001uecho"|g' $VALIDATOR3_APP_TOML
 
 # change config.toml values
 VALIDATOR1_CONFIG=$HOME/.echofid/validator1/config/config.toml
@@ -101,19 +101,19 @@ sed -i -E 's|allow_duplicate_ip = false|allow_duplicate_ip = true|g' $VALIDATOR3
 sed -i -E 's|prometheus = false|prometheus = true|g' $VALIDATOR3_CONFIG
 sed -i -E 's|prometheus_listen_addr = ":26660"|prometheus_listen_addr = ":26620"|g' $VALIDATOR3_CONFIG
 
-# # update
-# update_test_genesis () {
-#     # EX: update_test_genesis '.consensus_params["block"]["max_gas"]="100000000"'
-#     cat $HOME/.echofid/validator1/config/genesis.json | jq "$1" > tmp.json && mv tmp.json $HOME/.echofid/validator1/config/genesis.json
-#     cat $HOME/.echofid/validator2/config/genesis.json | jq "$1" > tmp.json && mv tmp.json $HOME/.echofid/validator2/config/genesis.json
-#     cat $HOME/.echofid/validator3/config/genesis.json | jq "$1" > tmp.json && mv tmp.json $HOME/.echofid/validator3/config/genesis.json
-# }
+# update
+update_test_genesis () {
+    # EX: update_test_genesis '.consensus_params["block"]["max_gas"]="100000000"'
+    cat $HOME/.echofid/validator1/config/genesis.json | jq "$1" > tmp.json && mv tmp.json $HOME/.echofid/validator1/config/genesis.json
+    cat $HOME/.echofid/validator2/config/genesis.json | jq "$1" > tmp.json && mv tmp.json $HOME/.echofid/validator2/config/genesis.json
+    cat $HOME/.echofid/validator3/config/genesis.json | jq "$1" > tmp.json && mv tmp.json $HOME/.echofid/validator3/config/genesis.json
+}
 
 # update_test_genesis '.app_state["gov"]["voting_params"]["voting_period"] = "30s"'
-# update_test_genesis '.app_state["mint"]["params"]["mint_denom"]= "stake"'
-# update_test_genesis '.app_state["gov"]["deposit_params"]["min_deposit"]=[{"denom": "stake","amount": "1000000"}]'
-# update_test_genesis '.app_state["crisis"]["constant_fee"]={"denom": "stake","amount": "1000"}'
-# update_test_genesis '.app_state["staking"]["params"]["bond_denom"]="stake"'
+update_test_genesis '.app_state["mint"]["params"]["mint_denom"]= "uecho"'
+update_test_genesis '.app_state["gov"]["params"]["min_deposit"]=[{"denom": "uecho","amount": "1000000"}]'
+update_test_genesis '.app_state["crisis"]["constant_fee"]={"denom": "uecho","amount": "1000"}'
+update_test_genesis '.app_state["staking"]["params"]["bond_denom"]="uecho"'
 
 
 # copy validator1 genesis file to validator2-3
@@ -140,7 +140,7 @@ screen -S echofi3 -t echofi3 -d -m echofid start --home=$HOME/.echofid/validator
 
 sleep 7
 
-echofid tx bank send $(echofid keys show validator1 -a --keyring-backend=test --home=$HOME/.echofid/validator1) $(echofid keys show validator2 -a --keyring-backend=test --home=$HOME/.echofid/validator2) 100000stake --keyring-backend=test --chain-id=testing-1 -y --home=$HOME/.echofid/validator1 --fees 10stake
+echofid tx bank send $(echofid keys show validator1 -a --keyring-backend=test --home=$HOME/.echofid/validator1) $(echofid keys show validator2 -a --keyring-backend=test --home=$HOME/.echofid/validator2) 100000uecho --keyring-backend=test --chain-id=testing-1 -y --home=$HOME/.echofid/validator1 --fees 10uecho
 
 # sleep 7
 # echofid tx bank send cosmos1f7twgcq4ypzg7y24wuywy06xmdet8pc4473tnq cosmos1qvuhm5m644660nd8377d6l7yz9e9hhm9evmx3x 10000000000000000000000stake --keyring-backend=test --chain-id=testing-1 -y --home=$HOME/.echofid/validator1 --fees 200000stake
