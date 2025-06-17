@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"cosmossdk.io/math"
+
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmjson "github.com/cometbft/cometbft/libs/json"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
@@ -61,7 +63,8 @@ import (
 )
 
 const (
-	appName = "EchofiApp"
+	appName              = "EchofiApp"
+	AccountAddressPrefix = "echofi"
 )
 
 var (
@@ -101,6 +104,22 @@ func init() {
 	}
 
 	DefaultNodeHome = filepath.Join(userHomeDir, ".echofi")
+
+	sdk.DefaultPowerReduction = math.NewIntWithDecimal(1, 18) //nolint: gomnd
+
+	// Set prefixes.
+	accountPubKeyPrefix := AccountAddressPrefix + "pub"
+	validatorAddressPrefix := AccountAddressPrefix + "valoper"
+	validatorPubKeyPrefix := AccountAddressPrefix + "valoperpub"
+	consNodeAddressPrefix := AccountAddressPrefix + "valcons"
+	consNodePubKeyPrefix := AccountAddressPrefix + "valconspub"
+
+	// Set and seal config.
+	config := sdk.GetConfig()
+	config.SetBech32PrefixForAccount(AccountAddressPrefix, accountPubKeyPrefix)
+	config.SetBech32PrefixForValidator(validatorAddressPrefix, validatorPubKeyPrefix)
+	config.SetBech32PrefixForConsensusNode(consNodeAddressPrefix, consNodePubKeyPrefix)
+	config.Seal()
 }
 
 // NewEchofiApp returns a reference to an initialized Echofi.
@@ -483,7 +502,7 @@ func (app *EchofiApp) GetTxConfig() client.TxConfig {
 // EmptyWasmOptions is a stub implementing Wasmkeeper Option
 var EmptyWasmOptions []wasmkeeper.Option
 
-// InterfaceRegistry returns Gaia's InterfaceRegistry
+// InterfaceRegistry returns Echofi's InterfaceRegistry
 func (app *EchofiApp) InterfaceRegistry() types.InterfaceRegistry {
 	return app.interfaceRegistry
 }
