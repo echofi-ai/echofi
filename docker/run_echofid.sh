@@ -2,7 +2,7 @@
 
 if test -n "$1"; then
     # need -R not -r to copy hidden files
-    cp -R "$1/.juno" /root
+    cp -R "$1/.echofi" /root
 fi
 
 mkdir -p /root/log
