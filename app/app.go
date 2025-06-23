@@ -198,7 +198,7 @@ func NewEchofiApp(
 	clientKeeper.AddRoute(ibctm.ModuleName, &tmLightClientModule)
 
 	// Create WASM Light Client Stack
-	wasmLightClientModule := ibcwasm.NewLightClientModule(app.WasmClientKeeper, clientKeeper.GetStoreProvider())
+	wasmLightClientModule := ibcwasm.NewLightClientModule(app.AppKeepers.WasmClientKeeper, clientKeeper.GetStoreProvider())
 	clientKeeper.AddRoute(ibcwasmtypes.ModuleName, &wasmLightClientModule)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
@@ -211,7 +211,7 @@ func NewEchofiApp(
 
 	txConfigOpts := authtx.ConfigOptions{
 		EnabledSignModes:           enabledSignModes,
-		TextualCoinMetadataQueryFn: txmodule.NewBankKeeperCoinMetadataQueryFn(app.BankKeeper),
+		TextualCoinMetadataQueryFn: txmodule.NewBankKeeperCoinMetadataQueryFn(app.AppKeepers.BankKeeper),
 	}
 	txConfig, err = authtx.NewTxConfigWithOptions(
 		appCodec,
@@ -244,22 +244,22 @@ func NewEchofiApp(
 	// Uncomment if you want to set a custom migration order here.
 	// app.mm.SetOrderMigrations(custom order)
 
-	app.configurator = module.NewConfigurator(app.appCodec, app.MsgServiceRouter(), app.GRPCQueryRouter())
+	app.configurator = module.NewConfigurator(app.appCodec, app.BaseApp.MsgServiceRouter(), app.BaseApp.GRPCQueryRouter())
 	err = app.mm.RegisterServices(app.configurator)
 	if err != nil {
 		panic(err)
 	}
 
-	autocliv1.RegisterQueryServer(app.GRPCQueryRouter(), runtimeservices.NewAutoCLIQueryService(app.mm.Modules))
+	autocliv1.RegisterQueryServer(app.BaseApp.GRPCQueryRouter(), runtimeservices.NewAutoCLIQueryService(app.mm.Modules))
 
 	reflectionSvc, err := runtimeservices.NewReflectionService()
 	if err != nil {
 		panic(err)
 	}
-	reflectionv1.RegisterReflectionServiceServer(app.GRPCQueryRouter(), reflectionSvc)
+	reflectionv1.RegisterReflectionServiceServer(app.BaseApp.GRPCQueryRouter(), reflectionSvc)
 
 	// add test gRPC service for testing gRPC queries in isolation
-	testdata.RegisterQueryServer(app.GRPCQueryRouter(), testdata.QueryImpl{})
+	testdata.RegisterQueryServer(app.BaseApp.GRPCQueryRouter(), testdata.QueryImpl{})
 
 	// create the simulation manager and define the order of the modules for deterministic simulations
 	//
@@ -270,16 +270,16 @@ func NewEchofiApp(
 	app.sm.RegisterStoreDecoders()
 
 	// initialize stores
-	app.MountKVStores(app.GetKVStoreKey())
-	app.MountTransientStores(app.GetTransientStoreKey())
-	app.MountMemoryStores(app.GetMemoryStoreKey())
+	app.BaseApp.MountKVStores(app.AppKeepers.GetKVStoreKey())
+	app.BaseApp.MountTransientStores(app.AppKeepers.GetTransientStoreKey())
+	app.BaseApp.MountMemoryStores(app.AppKeepers.GetMemoryStoreKey())
 
 	anteHandler, err := ante.NewAnteHandler(
 		ante.HandlerOptions{
-			AccountKeeper:   app.AccountKeeper,
-			BankKeeper:      app.BankKeeper,
+			AccountKeeper:   app.AppKeepers.AccountKeeper,
+			BankKeeper:      app.AppKeepers.BankKeeper,
 			SignModeHandler: txConfig.SignModeHandler(),
-			FeegrantKeeper:  app.FeeGrantKeeper,
+			FeegrantKeeper:  app.AppKeepers.FeeGrantKeeper,
 			SigGasConsumer:  ante.DefaultSigVerificationGasConsumer,
 		},
 	)
@@ -288,8 +288,8 @@ func NewEchofiApp(
 	}
 
 	// postHandlerOptions := PostHandlerOptions{
-	// 	AccountKeeper:   app.AccountKeeper,
-	// 	BankKeeper:      app.BankKeeper,
+	// 	AccountKeeper:   app.AppKeepers.AccountKeeper,
+	// 	BankKeeper:      app.AppKeepers.BankKeeper,
 	// 	FeeMarketKeeper: app.FeeMarketKeeper,
 	// }
 	// postHandler, err := NewPostHandler(postHandlerOptions)
@@ -298,17 +298,17 @@ func NewEchofiApp(
 	// }
 
 	// set ante and post handlers
-	app.SetAnteHandler(anteHandler)
+	app.BaseApp.SetAnteHandler(anteHandler)
 
-	app.SetInitChainer(app.InitChainer)
-	app.SetPreBlocker(app.PreBlocker)
-	app.SetBeginBlocker(app.BeginBlocker)
-	app.SetEndBlocker(app.EndBlocker)
+	app.BaseApp.SetInitChainer(app.InitChainer)
+	app.BaseApp.SetPreBlocker(app.PreBlocker)
+	app.BaseApp.SetBeginBlocker(app.BeginBlocker)
+	app.BaseApp.SetEndBlocker(app.EndBlocker)
 
-	if manager := app.SnapshotManager(); manager != nil {
+	if manager := app.BaseApp.SnapshotManager(); manager != nil {
 		err = manager.RegisterExtensions(
-			wasmkeeper.NewWasmSnapshotter(app.CommitMultiStore(), &app.WasmKeeper),
-			ibcwasmkeeper.NewWasmSnapshotter(app.CommitMultiStore(), &app.WasmClientKeeper),
+			wasmkeeper.NewWasmSnapshotter(app.BaseApp.CommitMultiStore(), &app.AppKeepers.WasmKeeper),
+			ibcwasmkeeper.NewWasmSnapshotter(app.BaseApp.CommitMultiStore(), &app.AppKeepers.WasmClientKeeper),
 		)
 		if err != nil {
 			panic("failed to register snapshot extension: " + err.Error())
@@ -332,17 +332,17 @@ func NewEchofiApp(
 	}
 
 	if loadLatest {
-		if err := app.LoadLatestVersion(); err != nil {
+		if err := app.BaseApp.LoadLatestVersion(); err != nil {
 			panic(fmt.Sprintf("failed to load latest version: %s", err))
 		}
 
-		ctx := app.NewUncachedContext(true, tmproto.Header{})
+		ctx := app.BaseApp.NewUncachedContext(true, tmproto.Header{})
 
-		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
+		if err := app.AppKeepers.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			panic(fmt.Sprintf("WasmKeeper failed initialize pinned codes %s", err))
 		}
 
-		if err := app.WasmClientKeeper.InitializePinnedCodes(ctx); err != nil {
+		if err := app.AppKeepers.WasmClientKeeper.InitializePinnedCodes(ctx); err != nil {
 			panic(fmt.Sprintf("wasmlckeeper failed initialize pinned codes %s", err))
 		}
 	}
@@ -379,7 +379,7 @@ func (app *EchofiApp) InitChainer(ctx sdk.Context, req *abci.RequestInitChain) (
 		panic(err)
 	}
 
-	if err := app.UpgradeKeeper.SetModuleVersionMap(ctx, app.mm.GetVersionMap()); err != nil {
+	if err := app.AppKeepers.UpgradeKeeper.SetModuleVersionMap(ctx, app.mm.GetVersionMap()); err != nil {
 		panic(err)
 	}
 
@@ -411,12 +411,12 @@ func (app *EchofiApp) setupUpgradeHandlers() {
 
 // configure store loader that checks if version == upgradeHeight and applies store upgrades
 func (app *EchofiApp) setupUpgradeStoreLoaders() {
-	upgradeInfo, err := app.UpgradeKeeper.ReadUpgradeInfoFromDisk()
+	upgradeInfo, err := app.AppKeepers.UpgradeKeeper.ReadUpgradeInfoFromDisk()
 	if err != nil {
 		panic(fmt.Sprintf("failed to read upgrade info from disk %s", err))
 	}
 
-	if app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
+	if app.AppKeepers.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
 		return
 	}
 
@@ -435,7 +435,7 @@ func (app *EchofiApp) LegacyAmino() *codec.LegacyAmino {
 
 // LoadHeight loads a particular height.
 func (app *EchofiApp) LoadHeight(height int64) error {
-	return app.LoadVersion(height)
+	return app.BaseApp.LoadVersion(height)
 }
 
 // SimulationManager implements the SimulationApp interface.
@@ -468,22 +468,22 @@ func (app *EchofiApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.API
 
 // RegisterNodeService allows query minimum-gas-prices in app.toml
 func (app *EchofiApp) RegisterNodeService(clientCtx client.Context, cfg config.Config) {
-	nodeservice.RegisterNodeService(clientCtx, app.GRPCQueryRouter(), cfg)
+	nodeservice.RegisterNodeService(clientCtx, app.BaseApp.GRPCQueryRouter(), cfg)
 }
 
 // RegisterTendermintService implements the Application.RegisterTendermintService method.
 func (app *EchofiApp) RegisterTendermintService(clientCtx client.Context) {
 	cmtservice.RegisterTendermintService(
 		clientCtx,
-		app.GRPCQueryRouter(),
+		app.BaseApp.GRPCQueryRouter(),
 		app.interfaceRegistry,
-		app.Query,
+		app.BaseApp.Query,
 	)
 }
 
 // RegisterTxService implements the Application.RegisterTxService method.
 func (app *EchofiApp) RegisterTxService(clientCtx client.Context) {
-	authtx.RegisterTxService(app.GRPCQueryRouter(), clientCtx, app.Simulate, app.interfaceRegistry)
+	authtx.RegisterTxService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.BaseApp.Simulate, app.interfaceRegistry)
 }
 
 func (app *EchofiApp) AppCodec() codec.Codec {
@@ -491,7 +491,7 @@ func (app *EchofiApp) AppCodec() codec.Codec {
 }
 
 func (app *EchofiApp) GetIBCKeeper() *ibckeeper.Keeper { //nolint:nolintlint
-	return app.IBCKeeper
+	return app.AppKeepers.IBCKeeper
 }
 
 // GetTxConfig implements the TestingApp interface.
