@@ -3,7 +3,7 @@
 rm -rf ~/.echofi/
 
 # if $KEY exists it should be deleted
-mnm_val="soap step crash ceiling path virtual this armor accident pond share track spice woman vault discover share holiday inquiry oak shine scrub bulb arrive"
+mnm_val="clip hire initial neck maid actor venue client foam budget lock catalog sweet steak waste crater broccoli pipe steak sister coyote moment obvious choose"
 
 
 # Set moniker and chain-id for Evmos (Moniker can be anything, chain-id must be an integer)

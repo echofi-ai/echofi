@@ -19,11 +19,11 @@ echofid init --chain-id=testing-1 validator3 --home=$HOME/.echofid/validator3
 
 # create keys for all three validators
 # cosmos1f7twgcq4ypzg7y24wuywy06xmdet8pc4473tnq
-echo $(cat /Users/donglieu/script/keys/mnemonic1)| echofid keys add validator1 --recover --keyring-backend=test --home=$HOME/.echofid/validator1
+echo "clip hire initial neck maid actor venue client foam budget lock catalog sweet steak waste crater broccoli pipe steak sister coyote moment obvious choose"| echofid keys add validator1 --recover --keyring-backend=test --home=$HOME/.echofid/validator1
 # cosmos1w7f3xx7e75p4l7qdym5msqem9rd4dyc4752spg
-echo $(cat /Users/donglieu/script/keys/mnemonic2)| echofid keys add validator2 --recover --keyring-backend=test --home=$HOME/.echofid/validator2
+echo "soap step crash ceiling path virtual this armor accident pond share track spice woman vault discover share holiday inquiry oak shine scrub bulb arrive"| echofid keys add validator2 --recover --keyring-backend=test --home=$HOME/.echofid/validator2
 # cosmos1g9v3zjt6rfkwm4s8sw9wu4jgz9me8pn27f8nyc
-echo $(cat /Users/donglieu/script/keys/mnemonic3)| echofid keys add validator3 --recover --keyring-backend=test --home=$HOME/.echofid/validator3
+echo "travel jelly basic visa apart kidney piano lumber elevator fat unknown guard matter used high drastic umbrella humble crush stock banner enlist mule unique"| echofid keys add validator3 --recover --keyring-backend=test --home=$HOME/.echofid/validator3
 
 # create validator node with tokens to transfer to the three other nodes
 echofid genesis add-genesis-account $(echofid keys show validator1 -a --keyring-backend=test --home=$HOME/.echofid/validator1) 10000000000000000000000000000000stake,10000000000000000000000000000000uecho --home=$HOME/.echofid/validator1 
