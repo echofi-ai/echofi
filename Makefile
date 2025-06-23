@@ -8,7 +8,7 @@ install: go.sum
 		go install $(BUILD_FLAGS) ./cmd/echofid
 
 build:
-	go build -o /usr/local/bin/echocms ./cmd
+	go build -o build/echofid ./cmd/echofid
 
 ###############################################################################
 ###                                Test                                 	###
