@@ -1,8 +1,6 @@
 module github.com/echofi-ai/echofi
 
-go 1.23.6
-
-toolchain go1.24.1
+go 1.23.9
 
 require (
 	cosmossdk.io/client/v2 v2.0.0-beta.7
@@ -28,7 +26,7 @@ require (
 	cosmossdk.io/api v0.9.2
 	cosmossdk.io/core v0.11.3
 	cosmossdk.io/errors v1.0.2 // indirect
-	cosmossdk.io/math v1.5.3 // indirect
+	cosmossdk.io/math v1.5.3
 	cosmossdk.io/schema v1.1.0 // indirect
 	cosmossdk.io/x/tx v0.14.0
 	github.com/cometbft/cometbft v0.38.17
