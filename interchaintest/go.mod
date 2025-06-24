@@ -12,6 +12,7 @@ require (
 )
 
 require (
+	github.com/cosmos/ibc-go/v10 v10.3.0
 	github.com/cosmos/interchaintest/v10 v10.0.0
 	github.com/moby/moby v27.5.1+incompatible
 )
@@ -78,7 +79,6 @@ require (
 	github.com/cosmos/gogogateway v1.2.0 // indirect
 	github.com/cosmos/gogoproto v1.7.0 // indirect
 	github.com/cosmos/iavl v1.2.4 // indirect
-	github.com/cosmos/ibc-go/v10 v10.3.0 // indirect
 	github.com/cosmos/ics23/go v0.11.0 // indirect
 	github.com/cosmos/interchain-security/v7 v7.0.0-20250408210344-06e0dc6bf6d6 // indirect
 	github.com/cosmos/ledger-cosmos-go v0.14.0 // indirect
