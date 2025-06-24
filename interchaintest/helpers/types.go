@@ -72,3 +72,20 @@ type Vals struct {
 		Total   string `json:"total"`
 	} `json:"pagination"`
 }
+
+// Vote represents a single vote in the query result
+type Vote struct {
+	ProposalID string `json:"proposal_id"`
+	Voter      string `json:"voter"`
+	Option     string `json:"option"`
+}
+
+// QueryVotesResult wraps the JSON output
+type QueryVotesResult struct {
+	Votes []Vote `json:"votes"`
+}
+
+// Proposal là một struct đơn giản để lấy status
+type Proposal struct {
+	Status string `json:"status"`
+}

@@ -126,6 +126,8 @@ lint:
 ###############################################################################
 ###                             e2e interchain test                         ###
 ###############################################################################
+ictest-docker-build:
+	docker build -t echofi:local .
 
 ictest-basic: rm-testcache
 	cd interchaintest && go test -race -v -run TestBasicEchofiStart .
@@ -135,6 +137,9 @@ ictest-ibc: rm-testcache
 
 ictest-staking: rm-testcache
 	cd interchaintest && go test -race -v -run TestStakeTokenAndUnstakeToken .
+
+ictest-gov: rm-testcache
+	cd interchaintest && go test -race -v -run TestGov .
 
 
 rm-testcache:
