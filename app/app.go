@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"cosmossdk.io/math"
-
 	abci "github.com/cometbft/cometbft/abci/types"
 	tmjson "github.com/cometbft/cometbft/libs/json"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
@@ -104,8 +102,6 @@ func init() {
 	}
 
 	DefaultNodeHome = filepath.Join(userHomeDir, ".echofi")
-
-	sdk.DefaultPowerReduction = math.NewIntWithDecimal(1, 18) //nolint: gomnd
 
 	// Set prefixes.
 	accountPubKeyPrefix := AccountAddressPrefix + "pub"
