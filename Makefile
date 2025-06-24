@@ -133,5 +133,9 @@ ictest-basic: rm-testcache
 ictest-ibc: rm-testcache
 	cd interchaintest && go test -race -v -run TestEchofiGaiaIBCTransfer .
 
+ictest-staking: rm-testcache
+	cd interchaintest && go test -race -v -run TestStakeTokenAndUnstakeToken .
+
+
 rm-testcache:
 	go clean -testcache
