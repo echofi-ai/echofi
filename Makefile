@@ -122,3 +122,13 @@ lint:
 	@echo "--> Running linter"
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(golangci_version)
 	@$(golangci_lint_cmd) run --timeout=10m
+
+###############################################################################
+###                             e2e interchain test                         ###
+###############################################################################
+
+ictest-basic: rm-testcache
+	cd interchaintest && go test -race -v -run TestBasicEchofiStart .
+
+rm-testcache:
+	go clean -testcache
