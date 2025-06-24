@@ -130,5 +130,8 @@ lint:
 ictest-basic: rm-testcache
 	cd interchaintest && go test -race -v -run TestBasicEchofiStart .
 
+ictest-ibc: rm-testcache
+	cd interchaintest && go test -race -v -run TestEchofiGaiaIBCTransfer .
+
 rm-testcache:
 	go clean -testcache
