@@ -273,10 +273,6 @@ require (
 replace (
 	github.com/ChainSafe/go-schnorrkel => github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
 	github.com/ChainSafe/go-schnorrkel/1 => github.com/ChainSafe/go-schnorrkel v1.0.0
-	github.com/cosmos/cosmos-sdk => github.com/cosmos/cosmos-sdk v0.53.0
-	github.com/cosmos/ibc-go/v10 => github.com/cosmos/ibc-go/v10 v10.1.1
-	github.com/cosmos/ibc-go/v10 v10.3.0 => github.com/cosmos/ibc-go/v10 v10.1.1
-	// github.com/cosmos/ibc-go/v8 => github.com/cosmos/ibc-go/v10 v10.1.1
 	// For this nested module, you always want to replace the parent reference with the current worktree.
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 )
