@@ -1,0 +1,20 @@
+{
+    "messages": [
+     {
+      "@type": "/cosmos.upgrade.v1beta1.MsgSoftwareUpgrade",
+      "authority": "echofi10d07y265gmmuvt4z0w9aw880jnsr700ja7xcep",
+      "plan": {
+       "name": "v1.1.1",
+       "time": "0001-01-01T00:00:00Z",
+       "height": "1000000",
+       "info": "https://github.com/...v1.1.1",
+       "upgraded_client_state": null
+      }
+     }
+    ],
+    "metadata": "ipfs://CID",
+    "deposit": "1000000000uecho",
+    "title": "Software Upgrade v1.1.1",
+    "summary": "Software Upgrade v1.1.1...",
+    "expedited": false
+   }
