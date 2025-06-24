@@ -140,10 +140,13 @@ screen -S echofi3 -t echofi3 -d -m echofid start --home=$HOME/.echofid/validator
 
 sleep 7
 
-echofid tx bank send $(echofid keys show validator1 -a --keyring-backend=test --home=$HOME/.echofid/validator1) $(echofid keys show validator2 -a --keyring-backend=test --home=$HOME/.echofid/validator2) 100000uecho --keyring-backend=test --chain-id=testing-1 -y --home=$HOME/.echofid/validator1 --fees 10uecho
+echofid tx bank send $(echofid keys show validator1 -a --keyring-backend=test --home=$HOME/.echofid/validator1) $(echofid keys show validator2 -a --keyring-backend=test --home=$HOME/.echofid/validator2) 100000uecho --keyring-backend=test --chain-id=testing-1 -y --home=$HOME/.echofid/validator1 --fees 20uecho
 
-# sleep 7
-# echofid tx bank send cosmos1f7twgcq4ypzg7y24wuywy06xmdet8pc4473tnq cosmos1qvuhm5m644660nd8377d6l7yz9e9hhm9evmx3x 10000000000000000000000stake --keyring-backend=test --chain-id=testing-1 -y --home=$HOME/.echofid/validator1 --fees 200000stake
-# sleep 7
-# echofid tx bank send echofi1f7twgcq4ypzg7y24wuywy06xmdet8pc4hhtf9t echofi16gjg8p5fedy48wf403jwmz2cxlwqtkqlwe0lug 10000000000000000000000stake --keyring-backend=test --chain-id=testing-1 -y --home=$HOME/.echofid/validator1 --fees 10stake
+sleep 7
 
+echofid tx gov submit-proposal  script/proposal-test.json --keyring-backend=test  --home=$HOME/.echofid/validator1 --from echofi16g2rahf5846rxzp3fwlswy08fz8ccuwk7lqjk2 -y --chain-id testing-1 --fees 20uecho
+
+sleep 7
+echofid tx gov vote 1 yes  --from validator1 --keyring-backend test --home ~/.echofid/validator1 --chain-id testing-1 -y --fees 20uecho
+echofid tx gov vote 1 yes  --from validator2 --keyring-backend test --home ~/.echofid/validator2 --chain-id testing-1 -y --fees 20uecho
+echofid tx gov vote 1 yes  --from validator3 --keyring-backend test --home ~/.echofid/validator3 --chain-id testing-1 -y --fees 20uecho
