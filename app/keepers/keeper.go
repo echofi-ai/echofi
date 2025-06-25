@@ -1,7 +1,8 @@
-package keeper
+package keepers
 
 import (
 	"fmt"
+	"github.com/spf13/cast"
 	"os"
 	"path/filepath"
 
@@ -84,6 +85,17 @@ import (
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 
+	srvflags "github.com/cosmos/evm/server/flags"
+	erc20keeper "github.com/cosmos/evm/x/erc20/keeper"
+	erc20types "github.com/cosmos/evm/x/erc20/types"
+	feemarketkeeper "github.com/cosmos/evm/x/feemarket/keeper"
+	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
+	evmtransferkeeper "github.com/cosmos/evm/x/ibc/transfer/keeper"
+	precisebankkeeper "github.com/cosmos/evm/x/precisebank/keeper"
+	precisebanktypes "github.com/cosmos/evm/x/precisebank/types"
+	evmkeeper "github.com/cosmos/evm/x/vm/keeper"
+	evmtypes "github.com/cosmos/evm/x/vm/types"
+
 	echoparams "github.com/echofi-ai/echofi/app/params"
 )
 
@@ -117,6 +129,13 @@ type AppKeepers struct {
 
 	// ICS
 	ProviderKeeper icsproviderkeeper.Keeper
+
+	// Cosmos EVM modules
+	EVMKeeper         *evmkeeper.Keeper
+	FeemarketKeeper   feemarketkeeper.Keeper
+	Erc20Keeper       erc20keeper.Keeper
+	EVMTransferKeeper evmtransferkeeper.Keeper
+	PreciseBankKeeper precisebankkeeper.Keeper
 
 	PFMRouterKeeper *pfmrouterkeeper.Keeper
 	RatelimitKeeper ratelimitkeeper.Keeper
@@ -200,6 +219,75 @@ func NewAppKeeper(
 		bApp.MsgServiceRouter(),
 		appKeepers.AccountKeeper,
 	)
+	// EVM
+	appKeepers.FeemarketKeeper = feemarketkeeper.NewKeeper(
+		appCodec,
+		authtypes.NewModuleAddress(govtypes.ModuleName),
+		appKeepers.keys[feemarkettypes.StoreKey],
+		appKeepers.tkeys[feemarkettypes.TransientKey],
+	)
+
+	appKeepers.PreciseBankKeeper = precisebankkeeper.NewKeeper(
+		appCodec,
+		appKeepers.keys[precisebanktypes.StoreKey],
+		appKeepers.BankKeeper,
+		appKeepers.AccountKeeper,
+	)
+
+	tracer := cast.ToString(appOpts.Get(srvflags.EVMTracer))
+
+	appKeepers.EVMKeeper = evmkeeper.NewKeeper(
+		appCodec,
+		appKeepers.keys[evmtypes.ModuleName],
+		appKeepers.tkeys[evmtypes.TransientKey],
+		authtypes.NewModuleAddress(govtypes.ModuleName),
+		appKeepers.AccountKeeper,
+		appKeepers.PreciseBankKeeper,
+		appKeepers.StakingKeeper,
+		appKeepers.FeemarketKeeper,
+		&appKeepers.Erc20Keeper,
+		tracer,
+	)
+
+	appKeepers.Erc20Keeper = erc20keeper.NewKeeper(
+		appKeepers.keys[erc20types.StoreKey],
+		appCodec,
+		authtypes.NewModuleAddress(govtypes.ModuleName),
+		appKeepers.AccountKeeper,
+		appKeepers.BankKeeper,
+		appKeepers.EVMKeeper,
+		appKeepers.StakingKeeper,
+		&appKeepers.EVMTransferKeeper,
+	)
+
+	appKeepers.IBCKeeper = ibckeeper.NewKeeper(
+		appCodec,
+		runtime.NewKVStoreService(appKeepers.keys[ibcexported.StoreKey]),
+		appKeepers.GetSubspace(ibcexported.ModuleName),
+		appKeepers.UpgradeKeeper,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+
+	appKeepers.EVMTransferKeeper = evmtransferkeeper.NewKeeper(
+		appCodec, runtime.NewKVStoreService(appKeepers.keys[evmtypes.ModuleName]),
+		appKeepers.GetSubspace(ibctransfertypes.ModuleName),
+		appKeepers.IBCKeeper.ChannelKeeper, // ICS4Wrapper
+		appKeepers.IBCKeeper.ChannelKeeper,
+		bApp.MsgServiceRouter(), appKeepers.AccountKeeper, appKeepers.BankKeeper,
+		appKeepers.Erc20Keeper, // Add ERC20 Keeper for ERC20 transfers
+		echoparams.AccGov.String(),
+	)
+
+	appKeepers.EVMKeeper.WithStaticPrecompiles(
+		NewAvailableStaticPrecompiles(
+			appCodec,
+			appKeepers.PreciseBankKeeper,
+			appKeepers.Erc20Keeper,
+			*appKeepers.GovKeeper,
+			appKeepers.SlashingKeeper,
+			appKeepers.EvidenceKeeper,
+		),
+	)
 
 	// We need to set the bank keeper here otherwise risk a NPE in certain message handlers
 	appKeepers.AuthzKeeper = appKeepers.AuthzKeeper.SetBankKeeper(appKeepers.BankKeeper)
@@ -255,15 +343,6 @@ func NewAppKeeper(
 		appCodec,
 		homePath,
 		bApp,
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
-	)
-
-	// UpgradeKeeper must be created before IBCKeeper
-	appKeepers.IBCKeeper = ibckeeper.NewKeeper(
-		appCodec,
-		runtime.NewKVStoreService(appKeepers.keys[ibcexported.StoreKey]),
-		appKeepers.GetSubspace(ibcexported.ModuleName),
-		appKeepers.UpgradeKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 

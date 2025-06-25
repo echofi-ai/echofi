@@ -1,8 +1,6 @@
 package app
 
 import (
-	feemarkettypes "github.com/skip-mev/feemarket/x/feemarket/types"
-
 	pfmroutertypes "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v10/packetforward/types"
 	ratelimittypes "github.com/cosmos/ibc-apps/modules/rate-limiting/v10/types"
 	ibcwasm "github.com/cosmos/ibc-go/modules/light-clients/08-wasm/v10"
@@ -55,6 +53,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
+	erc20types "github.com/cosmos/evm/x/erc20/types"
+	feemarkettypes "github.com/cosmos/evm/x/feemarket/types"
+	precisebanktypes "github.com/cosmos/evm/x/precisebank/types"
+	evmtypes "github.com/cosmos/evm/x/vm/types"
+
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 )
@@ -71,8 +74,10 @@ var maccPerms = map[string][]string{
 	ibctransfertypes.ModuleName:       {authtypes.Minter, authtypes.Burner},
 	providertypes.ConsumerRewardsPool: nil,
 	wasmtypes.ModuleName:              {authtypes.Burner},
+	evmtypes.ModuleName:               {authtypes.Minter, authtypes.Burner},
 	feemarkettypes.ModuleName:         nil,
-	feemarkettypes.FeeCollectorName:   nil,
+	erc20types.ModuleName:             {authtypes.Minter, authtypes.Burner}, // Allows erc20 module to mint/burn for token pairs
+	precisebanktypes.ModuleName:       {authtypes.Minter, authtypes.Burner},
 }
 
 func appModules(

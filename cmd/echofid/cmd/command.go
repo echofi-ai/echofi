@@ -161,6 +161,7 @@ func (a appCreator) newApp(
 		skipUpgradeHeights,
 		cast.ToString(appOpts.Get(flags.FlagHome)),
 		appOpts,
+		app.EVMChainID,
 		wasmOpts,
 		baseappOptions...,
 	)
@@ -206,6 +207,7 @@ func (a appCreator) appExport(
 		map[int64]bool{},
 		homePath,
 		appOpts,
+		app.EVMChainID,
 		emptyWasmOpts,
 	)
 

@@ -56,6 +56,7 @@ func NewRootCmd() *cobra.Command {
 		map[int64]bool{},
 		tempDir,
 		initAppOptions,
+		app.EVMChainID,
 		app.EmptyWasmOptions,
 	)
 	defer func() {
