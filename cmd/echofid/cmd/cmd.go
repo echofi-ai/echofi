@@ -28,6 +28,11 @@ import (
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 
+	"github.com/cosmos/evm/crypto/hd"
+	evmkeyring "github.com/cosmos/evm/crypto/keyring"
+	evmserverconfig "github.com/cosmos/evm/server/config"
+	evmtypes "github.com/cosmos/evm/types"
+
 	app "github.com/echofi-ai/echofi/app"
 )
 
@@ -75,7 +80,13 @@ func NewRootCmd() *cobra.Command {
 		WithInput(os.Stdin).
 		WithAccountRetriever(types.AccountRetriever{}).
 		WithHomeDir(app.DefaultNodeHome).
+		WithKeyringOptions(evmkeyring.Option(), hd.EthSecp256k1Option()).
 		WithViper("")
+
+	cfg := sdk.GetConfig()
+	cfg.SetCoinType(evmtypes.Bip44CoinType)
+	cfg.SetPurpose(sdk.Purpose)
+	cfg.Seal()
 
 	rootCmd := &cobra.Command{
 		Use:   "echofid",
@@ -140,6 +151,11 @@ func initAppConfig() (string, interface{}) {
 		serverconfig.Config
 
 		Wasm wasmtypes.NodeConfig `mapstructure:"wasm"`
+
+		// EVM config
+		EVM     evmserverconfig.EVMConfig     `mapstructure:"evm"`
+		JSONRPC evmserverconfig.JSONRPCConfig `mapstructure:"json-rpc"`
+		TLS     evmserverconfig.TLSConfig     `mapstructure:"tls"`
 	}
 
 	// Can optionally overwrite the SDK's default server config.
@@ -147,12 +163,20 @@ func initAppConfig() (string, interface{}) {
 	srvCfg.StateSync.SnapshotInterval = 1000
 	srvCfg.StateSync.SnapshotKeepRecent = 10
 
+	evmConfig := *evmserverconfig.DefaultEVMConfig()
+	evmConfig.EVMChainID = app.EVMChainID
+	jsonRPCConfig := *evmserverconfig.DefaultJSONRPCConfig()
+	jsonRPCConfig.Enable = true
+
 	customAppConfig := CustomAppConfig{
-		Config: *srvCfg,
-		Wasm:   wasmtypes.DefaultNodeConfig(),
+		Config:  *srvCfg,
+		Wasm:    wasmtypes.DefaultNodeConfig(),
+		EVM:     evmConfig,
+		JSONRPC: jsonRPCConfig,
+		TLS:     *evmserverconfig.DefaultTLSConfig(),
 	}
 
-	defaultAppTemplate := serverconfig.DefaultConfigTemplate + wasmtypes.DefaultConfigTemplate()
+	defaultAppTemplate := serverconfig.DefaultConfigTemplate + evmserverconfig.DefaultEVMConfigTemplate + wasmtypes.DefaultConfigTemplate()
 
 	return defaultAppTemplate, customAppConfig
 }
