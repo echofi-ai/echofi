@@ -193,6 +193,16 @@ func NewAppKeeper(
 	)
 	bApp.SetParamStore(appKeepers.ConsensusParamsKeeper.ParamsStore)
 
+	// UpgradeKeeper must be created before IBCKeeper
+	appKeepers.UpgradeKeeper = upgradekeeper.NewKeeper(
+		skipUpgradeHeights,
+		runtime.NewKVStoreService(appKeepers.keys[upgradetypes.StoreKey]),
+		appCodec,
+		homePath,
+		bApp,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
+
 	// Add normal keepers
 	appKeepers.AccountKeeper = authkeeper.NewAccountKeeper(
 		appCodec,
@@ -218,75 +228,6 @@ func NewAppKeeper(
 		appCodec,
 		bApp.MsgServiceRouter(),
 		appKeepers.AccountKeeper,
-	)
-	// EVM
-	appKeepers.FeemarketKeeper = feemarketkeeper.NewKeeper(
-		appCodec,
-		authtypes.NewModuleAddress(govtypes.ModuleName),
-		appKeepers.keys[feemarkettypes.StoreKey],
-		appKeepers.tkeys[feemarkettypes.TransientKey],
-	)
-
-	appKeepers.PreciseBankKeeper = precisebankkeeper.NewKeeper(
-		appCodec,
-		appKeepers.keys[precisebanktypes.StoreKey],
-		appKeepers.BankKeeper,
-		appKeepers.AccountKeeper,
-	)
-
-	tracer := cast.ToString(appOpts.Get(srvflags.EVMTracer))
-
-	appKeepers.EVMKeeper = evmkeeper.NewKeeper(
-		appCodec,
-		appKeepers.keys[evmtypes.ModuleName],
-		appKeepers.tkeys[evmtypes.TransientKey],
-		authtypes.NewModuleAddress(govtypes.ModuleName),
-		appKeepers.AccountKeeper,
-		appKeepers.PreciseBankKeeper,
-		appKeepers.StakingKeeper,
-		appKeepers.FeemarketKeeper,
-		&appKeepers.Erc20Keeper,
-		tracer,
-	)
-
-	appKeepers.Erc20Keeper = erc20keeper.NewKeeper(
-		appKeepers.keys[erc20types.StoreKey],
-		appCodec,
-		authtypes.NewModuleAddress(govtypes.ModuleName),
-		appKeepers.AccountKeeper,
-		appKeepers.BankKeeper,
-		appKeepers.EVMKeeper,
-		appKeepers.StakingKeeper,
-		&appKeepers.EVMTransferKeeper,
-	)
-
-	appKeepers.IBCKeeper = ibckeeper.NewKeeper(
-		appCodec,
-		runtime.NewKVStoreService(appKeepers.keys[ibcexported.StoreKey]),
-		appKeepers.GetSubspace(ibcexported.ModuleName),
-		appKeepers.UpgradeKeeper,
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
-	)
-
-	appKeepers.EVMTransferKeeper = evmtransferkeeper.NewKeeper(
-		appCodec, runtime.NewKVStoreService(appKeepers.keys[evmtypes.ModuleName]),
-		appKeepers.GetSubspace(ibctransfertypes.ModuleName),
-		appKeepers.IBCKeeper.ChannelKeeper, // ICS4Wrapper
-		appKeepers.IBCKeeper.ChannelKeeper,
-		bApp.MsgServiceRouter(), appKeepers.AccountKeeper, appKeepers.BankKeeper,
-		appKeepers.Erc20Keeper, // Add ERC20 Keeper for ERC20 transfers
-		echoparams.AccGov.String(),
-	)
-
-	appKeepers.EVMKeeper.WithStaticPrecompiles(
-		NewAvailableStaticPrecompiles(
-			appCodec,
-			appKeepers.PreciseBankKeeper,
-			appKeepers.Erc20Keeper,
-			*appKeepers.GovKeeper,
-			appKeepers.SlashingKeeper,
-			appKeepers.EvidenceKeeper,
-		),
 	)
 
 	// We need to set the bank keeper here otherwise risk a NPE in certain message handlers
@@ -336,13 +277,11 @@ func NewAppKeeper(
 		),
 	)
 
-	// UpgradeKeeper must be created before IBCKeeper
-	appKeepers.UpgradeKeeper = upgradekeeper.NewKeeper(
-		skipUpgradeHeights,
-		runtime.NewKVStoreService(appKeepers.keys[upgradetypes.StoreKey]),
+	appKeepers.IBCKeeper = ibckeeper.NewKeeper(
 		appCodec,
-		homePath,
-		bApp,
+		runtime.NewKVStoreService(appKeepers.keys[ibcexported.StoreKey]),
+		appKeepers.GetSubspace(ibcexported.ModuleName),
+		appKeepers.UpgradeKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
@@ -526,6 +465,68 @@ func NewAppKeeper(
 
 	// Must be called on PFMRouter AFTER TransferKeeper initialized
 	appKeepers.PFMRouterKeeper.SetTransferKeeper(appKeepers.TransferKeeper)
+
+	// EVM
+	appKeepers.FeemarketKeeper = feemarketkeeper.NewKeeper(
+		appCodec,
+		authtypes.NewModuleAddress(govtypes.ModuleName),
+		appKeepers.keys[feemarkettypes.StoreKey],
+		appKeepers.tkeys[feemarkettypes.TransientKey],
+	)
+
+	appKeepers.PreciseBankKeeper = precisebankkeeper.NewKeeper(
+		appCodec,
+		appKeepers.keys[precisebanktypes.StoreKey],
+		appKeepers.BankKeeper,
+		appKeepers.AccountKeeper,
+	)
+
+	appKeepers.Erc20Keeper = erc20keeper.NewKeeper(
+		appKeepers.keys[erc20types.StoreKey],
+		appCodec,
+		authtypes.NewModuleAddress(govtypes.ModuleName),
+		appKeepers.AccountKeeper,
+		appKeepers.BankKeeper,
+		appKeepers.EVMKeeper,
+		appKeepers.StakingKeeper,
+		&appKeepers.EVMTransferKeeper,
+	)
+
+	tracer := cast.ToString(appOpts.Get(srvflags.EVMTracer))
+
+	appKeepers.EVMKeeper = evmkeeper.NewKeeper(
+		appCodec,
+		appKeepers.keys[evmtypes.ModuleName],
+		appKeepers.tkeys[evmtypes.TransientKey],
+		authtypes.NewModuleAddress(govtypes.ModuleName),
+		appKeepers.AccountKeeper,
+		appKeepers.PreciseBankKeeper,
+		appKeepers.StakingKeeper,
+		appKeepers.FeemarketKeeper,
+		&appKeepers.Erc20Keeper,
+		tracer,
+	)
+
+	appKeepers.EVMTransferKeeper = evmtransferkeeper.NewKeeper(
+		appCodec, runtime.NewKVStoreService(appKeepers.keys[evmtypes.ModuleName]),
+		appKeepers.GetSubspace(ibctransfertypes.ModuleName),
+		appKeepers.IBCKeeper.ChannelKeeper, // ICS4Wrapper
+		appKeepers.IBCKeeper.ChannelKeeper,
+		bApp.MsgServiceRouter(), appKeepers.AccountKeeper, appKeepers.BankKeeper,
+		appKeepers.Erc20Keeper, // Add ERC20 Keeper for ERC20 transfers
+		echoparams.AccGov.String(),
+	)
+
+	appKeepers.EVMKeeper.WithStaticPrecompiles(
+		NewAvailableStaticPrecompiles(
+			appCodec,
+			appKeepers.PreciseBankKeeper,
+			appKeepers.Erc20Keeper,
+			*appKeepers.GovKeeper,
+			appKeepers.SlashingKeeper,
+			appKeepers.EvidenceKeeper,
+		),
+	)
 
 	wasmDir := homePath
 	wasmConfig, err := wasm.ReadNodeConfig(appOpts)

@@ -58,7 +58,6 @@ func (appKeepers *AppKeepers) GenerateKeys() {
 		ratelimittypes.StoreKey,
 		providertypes.StoreKey,
 		consensusparamtypes.StoreKey,
-		feemarkettypes.StoreKey,
 		wasmtypes.StoreKey,
 		ibcwasmtypes.StoreKey,
 		erc20types.StoreKey,
