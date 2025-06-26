@@ -3,6 +3,8 @@ on:
   pull_request:
   push:
     branches:
+      - dong/fix-fixx-build
+      - dong/fixx-build
       - main
       - release/**
 permissions:
