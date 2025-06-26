@@ -23,6 +23,20 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23.9'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libgmp-dev \
+            libusb-1.0-0-dev \
+            cmake \
+            clang \
+            pkg-config \
+            git \
+            curl
+
       - uses: technote-space/get-diff-action@v6.1.1
         id: git_diff
         with:
