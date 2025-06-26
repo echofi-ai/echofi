@@ -137,6 +137,11 @@ func NewRootCmd() *cobra.Command {
 
 	initRootCmd(rootCmd, tempApplication.ModuleBasics, tempApplication.AppCodec(), tempApplication.InterfaceRegistry(), tempApplication.GetTxConfig())
 
+	// If the regular chain id set, ensure we also set an EVM specific chain id.
+	if err := app.EVMAppOptions(app.EVMChainID); err != nil {
+		panic(err)
+	}
+
 	autoCliOpts := enrichAutoCliOpts(tempApplication.AutoCliOpts(), initClientCtx)
 	if err := autoCliOpts.EnhanceRootCommand(rootCmd); err != nil {
 		panic(err)

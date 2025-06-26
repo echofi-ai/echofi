@@ -126,6 +126,8 @@ lint:
 ###############################################################################
 ###                             e2e interchain test                         ###
 ###############################################################################
+test-e2e: ictest-docker-build ictest-basic
+
 ictest-docker-build:
 	docker build -t echofi:local .
 

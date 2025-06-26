@@ -76,6 +76,11 @@ const (
 	appName              = "EchofiApp"
 	AccountAddressPrefix = "echofi"
 	EVMChainID           = 6901
+	BaseCoinUnit         = "uecho"
+	BaseEVMDenom         = "aecho"
+	HumanCoinUnit        = "echo"
+
+	DefaultBondDenom = BaseCoinUnit
 )
 
 var (
@@ -160,6 +165,12 @@ func NewEchofiApp(
 	bApp.SetVersion(version.Version)
 	bApp.SetInterfaceRegistry(interfaceRegistry)
 	bApp.SetTxEncoder(txConfig.TxEncoder())
+
+	// Add after encoder has been set:
+	if err := EVMAppOptions(evmChainID); err != nil {
+		// Initialize the EVM application configuration
+		panic(fmt.Errorf("failed to initialize EVM app configuration: %w", err))
+	}
 
 	app := &EchofiApp{
 		BaseApp:           bApp,
@@ -268,27 +279,6 @@ func NewEchofiApp(
 	app.MountTransientStores(app.GetTransientStoreKey())
 	app.MountMemoryStores(app.GetMemoryStoreKey())
 
-	maxGasWanted := cast.ToUint64(appOpts.Get(srvflags.EVMMaxTxGasWanted))
-	options := ante.HandlerOptions{
-		AccountKeeper:          app.AccountKeeper,
-		BankKeeper:             app.BankKeeper,
-		SignModeHandler:        app.txConfig.SignModeHandler(),
-		FeegrantKeeper:         app.FeeGrantKeeper,
-		SigGasConsumer:         SigVerificationGasConsumer,
-		IBCKeeper:              app.IBCKeeper,
-		EvmKeeper:              app.EVMKeeper,
-		FeeMarketKeeper:        app.FeemarketKeeper,
-		MaxTxGasWanted:         maxGasWanted,
-		ExtensionOptionChecker: ostypes.HasDynamicFeeExtensionOption,
-		TxFeeChecker:           evmosanteevm.NewDynamicFeeChecker(app.FeemarketKeeper),
-	}
-
-	if err := options.Validate(); err != nil {
-		panic(err)
-	}
-
-	app.SetAnteHandler(ante.NewAnteHandler(options))
-
 	// postHandlerOptions := PostHandlerOptions{
 	// 	AccountKeeper:   app.AccountKeeper,
 	// 	BankKeeper:      app.BankKeeper,
@@ -313,6 +303,29 @@ func NewEchofiApp(
 			panic("failed to register snapshot extension: " + err.Error())
 		}
 	}
+
+	maxGasWanted := cast.ToUint64(appOpts.Get(srvflags.EVMMaxTxGasWanted))
+	options := ante.HandlerOptions{
+		AccountKeeper:          app.AccountKeeper,
+		BankKeeper:             app.BankKeeper,
+		SignModeHandler:        app.txConfig.SignModeHandler(),
+		FeegrantKeeper:         app.FeeGrantKeeper,
+		SigGasConsumer:         SigVerificationGasConsumer,
+		IBCKeeper:              app.IBCKeeper,
+		EvmKeeper:              app.EVMKeeper,
+		FeeMarketKeeper:        app.FeemarketKeeper,
+		MaxTxGasWanted:         maxGasWanted,
+		ExtensionOptionChecker: ostypes.HasDynamicFeeExtensionOption,
+		TxFeeChecker:           evmosanteevm.NewDynamicFeeChecker(app.FeemarketKeeper),
+	}
+
+	// fmt.Println(app.FeemarketKeeper.GetParams())
+
+	if err := options.Validate(); err != nil {
+		panic(err)
+	}
+
+	app.SetAnteHandler(ante.NewAnteHandler(options))
 
 	app.setupUpgradeHandlers()
 	app.setupUpgradeStoreLoaders()
