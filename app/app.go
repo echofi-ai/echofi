@@ -241,7 +241,7 @@ func NewEchofiApp(
 	// properly initialized with tokens from genesis accounts.
 	// NOTE: The genutils module must also occur after auth so that it can access the params from auth.
 	app.mm.SetOrderInitGenesis(orderInitBlockers()...)
-
+	app.mm.SetOrderExportGenesis(orderInitBlockers()...)
 	// Uncomment if you want to set a custom migration order here.
 	// app.mm.SetOrderMigrations(custom order)
 
