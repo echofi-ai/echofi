@@ -65,7 +65,7 @@ import (
 	evmosanteevm "github.com/cosmos/evm/ante/evm"
 	evmsecp256k1 "github.com/cosmos/evm/crypto/ethsecp256k1"
 	srvflags "github.com/cosmos/evm/server/flags"
-	ostypes "github.com/cosmos/evm/types"
+	evmtypes "github.com/cosmos/evm/types"
 	"github.com/spf13/cast"
 
 	"github.com/echofi-ai/echofi/app/ante"
@@ -315,7 +315,7 @@ func NewEchofiApp(
 		EvmKeeper:              app.EVMKeeper,
 		FeeMarketKeeper:        app.FeemarketKeeper,
 		MaxTxGasWanted:         maxGasWanted,
-		ExtensionOptionChecker: ostypes.HasDynamicFeeExtensionOption,
+		ExtensionOptionChecker: evmtypes.HasDynamicFeeExtensionOption,
 		TxFeeChecker:           evmosanteevm.NewDynamicFeeChecker(app.FeemarketKeeper),
 	}
 
