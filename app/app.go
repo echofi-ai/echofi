@@ -1,6 +1,8 @@
 package app
 
 import (
+	"cosmossdk.io/math"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -400,6 +402,15 @@ func (app *EchofiApp) InitChainer(ctx sdk.Context, req *abci.RequestInitChain) (
 		panic(err)
 	}
 
+	params := app.FeemarketKeeper.GetParams(ctx)
+	params.BaseFee = math.LegacyZeroDec()
+	params.NoBaseFee = true
+	params.MinGasPrice = math.LegacyMustNewDecFromStr("0.000000001")
+
+	if err := app.FeemarketKeeper.SetParams(ctx, params); err != nil {
+		panic(fmt.Sprintf("failed to override feemarket params: %v", err))
+	}
+
 	return response, nil
 }
 
@@ -574,4 +585,9 @@ func SigVerificationGasConsumer(
 	default:
 		return authante.DefaultSigVerificationGasConsumer(meter, sig, params)
 	}
+}
+
+// DefaultGenesis returns a default genesis from the registered AppModuleBasic's.
+func (app *EchofiApp) DefaultGenesis() map[string]json.RawMessage {
+	return app.ModuleBasics.DefaultGenesis(app.appCodec)
 }
