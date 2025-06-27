@@ -8,7 +8,22 @@ SHELL ["/bin/sh", "-ecuxo", "pipefail"]
 # we probably want to default to latest and error
 # since this is predominantly for dev use
 # hadolint ignore=DL3018
-RUN apk add --no-cache ca-certificates build-base git
+RUN apk add --no-cache \
+  ca-certificates \
+  build-base \
+  git \
+  bash \
+  libusb-dev \
+  linux-headers \
+  gmp-dev \
+  cmake \
+  pkgconfig \
+  clang \
+  llvm \
+  libstdc++ \
+  make \
+  musl-dev
+
 # NOTE: add these to run with LEDGER_ENABLED=true
 # RUN apk add libusb-dev linux-headers
 
