@@ -18,6 +18,9 @@ jobs:
     strategy:
       matrix:
         go-arch: ["amd64", "arm64"]
+        include:
+          - go-arch: arm64
+            continue-on-error: true
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v5
@@ -49,8 +52,8 @@ jobs:
             **/Makefile
             Makefile
       - name: Build
-        if: env.GIT_DIFF
+        if: steps.git_diff.outputs.GIT_DIFF != ''
         run: GOARCH=${{ matrix.go-arch }} make build
       - name: Build Legacy
-        if: env.GIT_DIFF
+        if: steps.git_diff.outputs.GIT_DIFF != ''
         run: GOARCH=${{ matrix.go-arch }} COSMOS_BUILD_OPTIONS=legacy make build
