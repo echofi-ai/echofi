@@ -1,6 +1,8 @@
 package app
 
 import (
+	"cosmossdk.io/math"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -25,7 +27,6 @@ import (
 	"cosmossdk.io/client/v2/autocli"
 	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/log"
-	"cosmossdk.io/x/tx/signing"
 	upgradetypes "cosmossdk.io/x/upgrade/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -33,7 +34,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/grpc/cmtservice"
 	nodeservice "github.com/cosmos/cosmos-sdk/client/grpc/node"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	runtimeservices "github.com/cosmos/cosmos-sdk/runtime/services"
@@ -41,14 +41,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
-	"github.com/cosmos/cosmos-sdk/std"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/types/msgservice"
 	sigtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 	authcodec "github.com/cosmos/cosmos-sdk/x/auth/codec"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	txmodule "github.com/cosmos/cosmos-sdk/x/auth/tx/config"
@@ -57,12 +55,34 @@ import (
 
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 
+	errorsmod "cosmossdk.io/errors"
+	storetypes "cosmossdk.io/store/types"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	"github.com/cosmos/cosmos-sdk/crypto/types/multisig"
+	errortypes "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/types/tx/signing"
+	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
+	evmosante "github.com/cosmos/evm/ante"
+	evmosanteevm "github.com/cosmos/evm/ante/evm"
+	evmsecp256k1 "github.com/cosmos/evm/crypto/ethsecp256k1"
+	srvflags "github.com/cosmos/evm/server/flags"
+	evmtypes "github.com/cosmos/evm/types"
+	"github.com/spf13/cast"
+
+	"github.com/echofi-ai/echofi/app/ante"
 	keepers "github.com/echofi-ai/echofi/app/keepers"
 )
 
 const (
 	appName              = "EchofiApp"
 	AccountAddressPrefix = "echofi"
+	EVMChainID           = 6969
+	BaseCoinUnit         = "uecho"
+	BaseEVMDenom         = "aecho"
+	HumanCoinUnit        = "echo"
+
+	DefaultBondDenom = BaseCoinUnit
 )
 
 var (
@@ -115,7 +135,6 @@ func init() {
 	config.SetBech32PrefixForAccount(AccountAddressPrefix, accountPubKeyPrefix)
 	config.SetBech32PrefixForValidator(validatorAddressPrefix, validatorPubKeyPrefix)
 	config.SetBech32PrefixForConsensusNode(consNodeAddressPrefix, consNodePubKeyPrefix)
-	config.Seal()
 }
 
 // NewEchofiApp returns a reference to an initialized Echofi.
@@ -127,29 +146,15 @@ func NewEchofiApp(
 	skipUpgradeHeights map[int64]bool,
 	homePath string,
 	appOpts servertypes.AppOptions,
+	evmChainID uint64,
 	wasmOpts []wasmkeeper.Option,
 	baseAppOptions ...func(*baseapp.BaseApp),
 ) *EchofiApp {
-	legacyAmino := codec.NewLegacyAmino()
-	interfaceRegistry, err := types.NewInterfaceRegistryWithOptions(types.InterfaceRegistryOptions{
-		ProtoFiles: proto.HybridResolver,
-		SigningOptions: signing.Options{
-			AddressCodec: address.Bech32Codec{
-				Bech32Prefix: sdk.GetConfig().GetBech32AccountAddrPrefix(),
-			},
-			ValidatorAddressCodec: address.Bech32Codec{
-				Bech32Prefix: sdk.GetConfig().GetBech32ValidatorAddrPrefix(),
-			},
-		},
-	})
-	if err != nil {
-		panic(err)
-	}
-	appCodec := codec.NewProtoCodec(interfaceRegistry)
-	txConfig := authtx.NewTxConfig(appCodec, authtx.DefaultSignModes)
-
-	std.RegisterLegacyAminoCodec(legacyAmino)
-	std.RegisterInterfaces(interfaceRegistry)
+	encCfg := MakeEncodingConfig(evmChainID)
+	interfaceRegistry := encCfg.InterfaceRegistry
+	appCodec := encCfg.Codec
+	legacyAmino := encCfg.Amino
+	txConfig := encCfg.TxConfig
 
 	bApp := baseapp.NewBaseApp(
 		appName,
@@ -162,6 +167,12 @@ func NewEchofiApp(
 	bApp.SetVersion(version.Version)
 	bApp.SetInterfaceRegistry(interfaceRegistry)
 	bApp.SetTxEncoder(txConfig.TxEncoder())
+
+	// Add after encoder has been set:
+	if err := EVMAppOptions(evmChainID); err != nil {
+		// Initialize the EVM application configuration
+		panic(fmt.Errorf("failed to initialize EVM app configuration: %w", err))
+	}
 
 	app := &EchofiApp{
 		BaseApp:           bApp,
@@ -209,7 +220,7 @@ func NewEchofiApp(
 		EnabledSignModes:           enabledSignModes,
 		TextualCoinMetadataQueryFn: txmodule.NewBankKeeperCoinMetadataQueryFn(app.BankKeeper),
 	}
-	txConfig, err = authtx.NewTxConfigWithOptions(
+	txConfig, err := authtx.NewTxConfigWithOptions(
 		appCodec,
 		txConfigOpts,
 	)
@@ -236,7 +247,7 @@ func NewEchofiApp(
 	// properly initialized with tokens from genesis accounts.
 	// NOTE: The genutils module must also occur after auth so that it can access the params from auth.
 	app.mm.SetOrderInitGenesis(orderInitBlockers()...)
-
+	app.mm.SetOrderExportGenesis(orderInitBlockers()...)
 	// Uncomment if you want to set a custom migration order here.
 	// app.mm.SetOrderMigrations(custom order)
 
@@ -270,19 +281,6 @@ func NewEchofiApp(
 	app.MountTransientStores(app.GetTransientStoreKey())
 	app.MountMemoryStores(app.GetMemoryStoreKey())
 
-	anteHandler, err := ante.NewAnteHandler(
-		ante.HandlerOptions{
-			AccountKeeper:   app.AccountKeeper,
-			BankKeeper:      app.BankKeeper,
-			SignModeHandler: txConfig.SignModeHandler(),
-			FeegrantKeeper:  app.FeeGrantKeeper,
-			SigGasConsumer:  ante.DefaultSigVerificationGasConsumer,
-		},
-	)
-	if err != nil {
-		panic(fmt.Errorf("failed to create AnteHandler: %s", err))
-	}
-
 	// postHandlerOptions := PostHandlerOptions{
 	// 	AccountKeeper:   app.AccountKeeper,
 	// 	BankKeeper:      app.BankKeeper,
@@ -292,9 +290,6 @@ func NewEchofiApp(
 	// if err != nil {
 	// 	panic(err)
 	// }
-
-	// set ante and post handlers
-	app.SetAnteHandler(anteHandler)
 
 	app.SetInitChainer(app.InitChainer)
 	app.SetPreBlocker(app.PreBlocker)
@@ -310,6 +305,29 @@ func NewEchofiApp(
 			panic("failed to register snapshot extension: " + err.Error())
 		}
 	}
+
+	maxGasWanted := cast.ToUint64(appOpts.Get(srvflags.EVMMaxTxGasWanted))
+	options := ante.HandlerOptions{
+		AccountKeeper:          app.AccountKeeper,
+		BankKeeper:             app.BankKeeper,
+		SignModeHandler:        app.txConfig.SignModeHandler(),
+		FeegrantKeeper:         app.FeeGrantKeeper,
+		SigGasConsumer:         SigVerificationGasConsumer,
+		IBCKeeper:              app.IBCKeeper,
+		EvmKeeper:              app.EVMKeeper,
+		FeeMarketKeeper:        app.FeemarketKeeper,
+		MaxTxGasWanted:         maxGasWanted,
+		ExtensionOptionChecker: evmtypes.HasDynamicFeeExtensionOption,
+		TxFeeChecker:           evmosanteevm.NewDynamicFeeChecker(app.FeemarketKeeper),
+	}
+
+	// fmt.Println(app.FeemarketKeeper.GetParams())
+
+	if err := options.Validate(); err != nil {
+		panic(err)
+	}
+
+	app.SetAnteHandler(ante.NewAnteHandler(options))
 
 	app.setupUpgradeHandlers()
 	app.setupUpgradeStoreLoaders()
@@ -382,6 +400,15 @@ func (app *EchofiApp) InitChainer(ctx sdk.Context, req *abci.RequestInitChain) (
 	response, err := app.mm.InitGenesis(ctx, app.appCodec, genesisState)
 	if err != nil {
 		panic(err)
+	}
+
+	params := app.FeemarketKeeper.GetParams(ctx)
+	params.BaseFee = math.LegacyZeroDec()
+	params.NoBaseFee = true
+	params.MinGasPrice = math.LegacyMustNewDecFromStr("0.000000001")
+
+	if err := app.FeemarketKeeper.SetParams(ctx, params); err != nil {
+		panic(fmt.Sprintf("failed to override feemarket params: %v", err))
 	}
 
 	return response, nil
@@ -521,4 +548,46 @@ func (app *EchofiApp) AutoCliOpts() autocli.AppOptions {
 		ValidatorAddressCodec: authcodec.NewBech32Codec(sdk.GetConfig().GetBech32ValidatorAddrPrefix()),
 		ConsensusAddressCodec: authcodec.NewBech32Codec(sdk.GetConfig().GetBech32ConsensusAddrPrefix()),
 	}
+}
+
+func SigVerificationGasConsumer(
+	meter storetypes.GasMeter, sig signing.SignatureV2, params authtypes.Params,
+) error {
+	pubkey := sig.PubKey
+	switch pubkey := pubkey.(type) {
+	case *evmsecp256k1.PubKey:
+		// Ethereum keys
+		meter.ConsumeGas(evmosante.Secp256k1VerifyCost, "ante verify: eth_secp256k1")
+		return nil
+	case *secp256k1.PubKey:
+		// Ethereum keys
+		meter.ConsumeGas(params.SigVerifyCostSecp256k1, "ante verify: secp256k1")
+		return nil
+	// case *ossecp256k1.PubKey:
+	// 	// Ethereum keys
+	// 	meter.ConsumeGas(evmosante.Secp256k1VerifyCost, "ante verify: eth_secp256k1")
+	// 	return nil
+	// case *ethsecp256k1.PubKey:
+	// 	// Ethereum keys
+	// 	meter.ConsumeGas(evmosante.Secp256k1VerifyCost, "ante verify: eth_secp256k1")
+	// 	return nil
+	case *ed25519.PubKey:
+		// Validator keys
+		meter.ConsumeGas(params.SigVerifyCostED25519, "ante verify: ed25519")
+		return errorsmod.Wrap(errortypes.ErrInvalidPubKey, "ED25519 public keys are unsupported")
+	case multisig.PubKey:
+		// Multisig keys
+		multisignature, ok := sig.Data.(*signing.MultiSignatureData)
+		if !ok {
+			return fmt.Errorf("expected %T, got, %T", &signing.MultiSignatureData{}, sig.Data)
+		}
+		return evmosante.ConsumeMultisignatureVerificationGas(meter, multisignature, pubkey, params, sig.Sequence)
+	default:
+		return authante.DefaultSigVerificationGasConsumer(meter, sig, params)
+	}
+}
+
+// DefaultGenesis returns a default genesis from the registered AppModuleBasic's.
+func (app *EchofiApp) DefaultGenesis() map[string]json.RawMessage {
+	return app.ModuleBasics.DefaultGenesis(app.appCodec)
 }
