@@ -77,7 +77,7 @@ import (
 const (
 	appName              = "EchofiApp"
 	AccountAddressPrefix = "echofi"
-	EVMChainID           = 6901
+	EVMChainID           = 6969
 	BaseCoinUnit         = "uecho"
 	BaseEVMDenom         = "aecho"
 	HumanCoinUnit        = "echo"

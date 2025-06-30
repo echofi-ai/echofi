@@ -84,7 +84,7 @@ func initRootCmd(rootCmd *cobra.Command,
 		genesisCommand(txConfig, basicManager),
 		queryCommand(),
 		txCommand(basicManager),
-		evmcmd.KeyCommands(app.DefaultNodeHome, false),
+		evmcmd.KeyCommands(app.DefaultNodeHome, true),
 	)
 
 	// add rosetta
