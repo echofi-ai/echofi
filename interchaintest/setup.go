@@ -3,9 +3,9 @@ package interchaintest
 import (
 	"context"
 	"fmt"
+	"github.com/spf13/viper"
 	"testing"
 
-	sdkmath "cosmossdk.io/math"
 	interchaintest "github.com/cosmos/interchaintest/v10"
 	"github.com/cosmos/interchaintest/v10/chain/cosmos"
 	"github.com/cosmos/interchaintest/v10/ibc"
@@ -14,8 +14,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
+	"cosmossdk.io/log"
+	sdkmath "cosmossdk.io/math"
+	dbm "github.com/cosmos/cosmos-db"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	testutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
+
+	app "github.com/echofi-ai/echofi/app"
 )
 
 var (
@@ -110,7 +115,23 @@ func init() {
 // echoEncoding registers the Echofi specific module codecs so that the associated types and msgs
 // will be supported when writing to the blocksdb sqlite database.
 func echoEncoding() *testutil.TestEncodingConfig {
-	cfg := cosmos.DefaultEncoding()
+	tempApplication := app.NewEchofiApp(
+		log.NewNopLogger(),
+		dbm.NewMemDB(),
+		nil,
+		true,
+		map[int64]bool{},
+		"tempDir",
+		viper.New(),
+		app.EVMChainID,
+		app.EmptyWasmOptions,
+	)
+	cfg := app.MakeEncodingConfig(app.EVMChainID)
+
+	cfg.InterfaceRegistry = tempApplication.InterfaceRegistry()
+	cfg.Amino = tempApplication.LegacyAmino()
+	cfg.Codec = tempApplication.AppCodec()
+	cfg.TxConfig = tempApplication.GetTxConfig()
 	return &cfg
 }
 

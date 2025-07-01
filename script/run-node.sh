@@ -52,3 +52,9 @@ update_test_genesis '.app_state["staking"]["params"]["bond_denom"]="uecho"'
 
 # Start the node (remove the --pruning=nothing flag if historical queries are not needed)
 echofid start --pruning=nothing  --minimum-gas-prices=0.0001uecho
+
+
+
+# echofid tx bank send val echofi13p8dcugd4snjv48368jyz4e4d0tw0lls8nz658 1000000uecho --from val --keyring-backend test --home=$HOME/.echofi --fees 20uecho -y
+
+# echofid tx bank send test echofi1dr5u7sxpmmckrvj0cc9he6sdl8qnje9wj5ay0x 1000000000000000000000uecho --from val --keyring-backend test --home=$HOME/.echofi --fees 20uecho -y
