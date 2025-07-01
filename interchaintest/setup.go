@@ -3,8 +3,10 @@ package interchaintest
 import (
 	"context"
 	"fmt"
-	"github.com/spf13/viper"
+	"os"
 	"testing"
+
+	"github.com/spf13/viper"
 
 	interchaintest "github.com/cosmos/interchaintest/v10"
 	"github.com/cosmos/interchaintest/v10/chain/cosmos"
@@ -115,13 +117,14 @@ func init() {
 // echoEncoding registers the Echofi specific module codecs so that the associated types and msgs
 // will be supported when writing to the blocksdb sqlite database.
 func echoEncoding() *testutil.TestEncodingConfig {
+	tempDir := "tempDir"
 	tempApplication := app.NewEchofiApp(
 		log.NewNopLogger(),
 		dbm.NewMemDB(),
 		nil,
 		true,
 		map[int64]bool{},
-		"tempDir",
+		tempDir,
 		viper.New(),
 		app.EVMChainID,
 		app.EmptyWasmOptions,
@@ -132,6 +135,9 @@ func echoEncoding() *testutil.TestEncodingConfig {
 	cfg.Amino = tempApplication.LegacyAmino()
 	cfg.Codec = tempApplication.AppCodec()
 	cfg.TxConfig = tempApplication.GetTxConfig()
+
+	// Clean up temporary directory
+	_ = os.RemoveAll(tempDir)
 	return &cfg
 }
 
