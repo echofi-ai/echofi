@@ -57,6 +57,7 @@ VALIDATOR3_APP_TOML=$HOME/.echofid/validator3/config/app.toml
 # validator1
 sed -i -E 's|localhost:9090|localhost:9050|g' $VALIDATOR1_APP_TOML
 sed -i -E 's|minimum-gas-prices = ""|minimum-gas-prices = "0.0001uecho"|g' $VALIDATOR1_APP_TOML
+sed -i -E 's|enable = false|enable = true|g' $VALIDATOR1_APP_TOML
 
 # validator2
 sed -i -E 's|tcp://localhost:1317|tcp://localhost:1316|g' $VALIDATOR2_APP_TOML
@@ -65,6 +66,7 @@ sed -i -E 's|localhost:9090|localhost:9088|g' $VALIDATOR2_APP_TOML
 # sed -i -E 's|0.0.0.0:9091|0.0.0.0:9089|g' $VALIDATOR2_APP_TOML
 sed -i -E 's|localhost:9091|localhost:9089|g' $VALIDATOR2_APP_TOML
 sed -i -E 's|minimum-gas-prices = ""|minimum-gas-prices = "0.0001uecho"|g' $VALIDATOR2_APP_TOML
+sed -i -E 's|enable = false|enable = true|g' $VALIDATOR2_APP_TOML
 
 # validator3
 sed -i -E 's|tcp://localhost:1317|tcp://localhost:1315|g' $VALIDATOR3_APP_TOML
@@ -73,6 +75,7 @@ sed -i -E 's|localhost:9090|localhost:9086|g' $VALIDATOR3_APP_TOML
 # sed -i -E 's|0.0.0.0:9091|0.0.0.0:9087|g' $VALIDATOR3_APP_TOML
 sed -i -E 's|localhost:9091|localhost:9087|g' $VALIDATOR3_APP_TOML
 sed -i -E 's|minimum-gas-prices = ""|minimum-gas-prices = "0.0001uecho"|g' $VALIDATOR3_APP_TOML
+sed -i -E 's|enable = false|enable = true|g' $VALIDATOR3_APP_TOML
 
 # change config.toml values
 VALIDATOR1_CONFIG=$HOME/.echofid/validator1/config/config.toml
